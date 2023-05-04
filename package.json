@@ -12,12 +12,15 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"devDependencies": {
+		"@carbon/charts-svelte": "^1.7.6",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/kit": "^1.5.0",
+		"@types/node": "^18.16.3",
 		"@typescript-eslint/eslint-plugin": "^5.45.0",
 		"@typescript-eslint/parser": "^5.45.0",
 		"carbon-components-svelte": "^0.73.5",
 		"carbon-icons-svelte": "^11.4.0",
+		"d3": "^7.8.4",
 		"date-fns": "^2.30.0",
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^8.5.0",
