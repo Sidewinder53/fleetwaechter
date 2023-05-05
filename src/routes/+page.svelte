@@ -18,7 +18,7 @@
   import '@carbon/styles/css/styles.css';
   import '@carbon/charts/styles.css';
   import { GaugeChart, LineChart } from '@carbon/charts-svelte';
-  import type { LineChartOptions, ScaleTypes } from '@carbon/charts/interfaces';
+  import type { LineChartOptions, GaugeChartOptions, ScaleTypes } from '@carbon/charts/interfaces';
 
   import {
     differenceInMonths,
@@ -84,6 +84,24 @@
   $: withinDailyAllowance = allowanceUsedPerDay <= allowanceAvailablePerDay;
   $: dailyAllowanceOveragePercentage = (allowanceUsedPerDay / allowanceAvailablePerDay - 1) * 100;
 
+  $: totalAllowanceGaugeColor = determineColor(usedAllowancePercentage);
+
+  let totalAllowanceGaugeOptions: GaugeChartOptions;
+  $: totalAllowanceGaugeOptions = {
+    title: 'Total Allowance',
+    resizable: false,
+    height: '150px',
+    width: '100%',
+    toolbar: {
+      enabled: false
+    },
+    color: {
+      scale: {
+        value: totalAllowanceGaugeColor
+      }
+    }
+  };
+
   $: totalAllowanceGaugeData = [
     {
       group: 'value',
@@ -91,25 +109,50 @@
     }
   ];
 
-    let extrapolatedAllowanceChartOptions: LineChartOptions = {
-              title: 'Allowance Extrapolation',
-              height: '250px',
-              axes: {
-                bottom: {
-                  mapsTo: 'key',
-                  scaleType: "time" as ScaleTypes.TIME
-                },
-                left: {
-                  mapsTo: 'value',
-                  title: 'Kilometers',
-                  scaleType: "linear" as ScaleTypes.LINEAR,
-                  includeZero: false,
-                }
-              },
-              toolbar: {
-                enabled: false
-              }
-            }
+  $: dailyAllowanceGaugeColor = determineColor(100 + dailyAllowanceOveragePercentage);
+
+  let dailyAllowanceGaugeOptions: GaugeChartOptions;
+  $: dailyAllowanceGaugeOptions = {
+    title: 'Daily Allowance',
+    resizable: false,
+    height: '150px',
+    width: '100%',
+    toolbar: {
+      enabled: false
+    },
+    color: {
+      scale: {
+        value: dailyAllowanceGaugeColor
+      }
+    }
+  };
+
+  $: dailyAllowanceGaugeData = [
+    {
+      group: 'value',
+      value: Math.round(100 + dailyAllowanceOveragePercentage)
+    }
+  ];
+
+  let extrapolatedAllowanceChartOptions: LineChartOptions = {
+    title: 'Allowance Extrapolation',
+    height: '250px',
+    axes: {
+      bottom: {
+        mapsTo: 'key',
+        scaleType: 'time' as ScaleTypes.TIME
+      },
+      left: {
+        mapsTo: 'value',
+        title: 'Kilometers',
+        scaleType: 'linear' as ScaleTypes.LINEAR,
+        includeZero: false
+      }
+    },
+    toolbar: {
+      enabled: false
+    }
+  };
 
   $: extrapolatedAllowanceChartData = [
     {
@@ -138,6 +181,16 @@
       value: currentKm
     }
   ];
+
+  function determineColor(percentage: number) {
+    if (percentage <= 85) {
+      return 'green';
+    } else if (percentage <= 95) {
+      return 'orange';
+    } else {
+      return 'red';
+    }
+  }
 </script>
 
 <LocalStorage key="currentKm" bind:value={currentKm} />
@@ -152,36 +205,31 @@
 <Content>
   <Grid>
     <Row>
-      <Column>
+      <Column sm={4} md={4} lg={5} >
         <Tile>
           <GaugeChart
             bind:data={totalAllowanceGaugeData}
-            options={{
-              title: 'Used allowance (total)',
-              resizable: false,
-              height: '250px',
-              width: '100%',
-              toolbar: {
-                enabled: false
-              }
-            }} />
-        </Tile>
-      </Column>
-      <Column>
-        <Tile>
+            bind:options={totalAllowanceGaugeOptions} />
           <h5>Used allowance:</h5>
-          <p>{allowanceUsed} km</p>
+          <p>{allowanceUsed.toFixed(1)} km</p>
           <h5>Remaing allowance:</h5>
-          <p>{allowanceRemaining} km</p>
-          {#if !withinDailyAllowance}
-            <h5>Overstepped daily allowance by:</h5>
-            <p>{dailyAllowanceOveragePercentage.toFixed(1)} %</p>
-          {/if}
+          <p>{allowanceRemaining.toFixed(1)} km</p>
         </Tile>
       </Column>
-      <Column>
+      <Column sm={4} md={4} lg={5}>
         <Tile>
-          <LineChart bind:data={extrapolatedAllowanceChartData} options={extrapolatedAllowanceChartOptions} />
+          <GaugeChart
+            bind:data={dailyAllowanceGaugeData}
+            bind:options={dailyAllowanceGaugeOptions} />
+            <h5>Average daily driven:</h5>
+            <p>{allowanceUsedPerDay.toFixed(1)} km</p>
+        </Tile>
+      </Column>
+      <Column sm={4} md={4} lg={5}>
+        <Tile>
+          <LineChart
+            bind:data={extrapolatedAllowanceChartData}
+            options={extrapolatedAllowanceChartOptions} />
         </Tile>
       </Column>
     </Row>
