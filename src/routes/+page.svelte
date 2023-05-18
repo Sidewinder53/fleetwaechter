@@ -3,6 +3,7 @@
   import {
     Accordion,
     AccordionItem,
+    CodeSnippet,
     Column,
     Content,
     DatePicker,
@@ -56,6 +57,13 @@
   let checkInValue = '';
   let carClass = 0;
   let currentDay = startOfTomorrow();
+  $: configurationComplete = (
+    (currentKm !== 0) &&
+    (initialKm !== 0) &&
+    (allowanceMonthly !== 0) &&
+    (checkOutValue !== '') &&
+    (checkInValue !== '')
+  );
 
   $: checkOutDate = parse(checkOutValue, 'dd/MM/yyyy', new Date());
   $: checkInDate = parse(checkInValue, 'dd/MM/yyyy', new Date());
@@ -182,6 +190,16 @@
     }
   ];
 
+  $: debugString = `CO Date: ${checkOutDate.toDateString()} - applied factor: ${allowanceFactorMonthCO.toFixed(2)} (amounts to ${allowanceMonthCO.toFixed(2)} km)
+CI Date: ${checkInDate.toDateString()} - applied factor: ${allowanceFactorMonthCI.toFixed(2)} (amounts to ${allowanceMonthCI.toFixed(2)} km)
+Months with full allowance: ${fullMonths} (amounts to ${allowanceMonthly * fullMonths} km)
+Total allowance: ${allowanceTotal.toFixed(2)} km
+Checked out days until today: ${checkedOutDaysUntilToday}
+Checked out days in total: ${checkedOutDaysTotal}
+Within daily allowance: ${withinDailyAllowance}
+Factor daily allowance used: ${dailyAllowanceOveragePercentage.toFixed(2)}
+Assumed current day (start of tomorrow): ${currentDay.toDateString()}`;
+
   function determineColor(percentage: number) {
     if (percentage <= 85) {
       return 'green';
@@ -192,6 +210,10 @@
     }
   }
 </script>
+
+<svelte:head>
+  <title>Fleetwächter</title>
+</svelte:head>
 
 <LocalStorage key="currentKm" bind:value={currentKm} />
 <LocalStorage key="initialKm" bind:value={initialKm} />
@@ -204,45 +226,49 @@
 
 <Content>
   <Grid>
-    <Row>
-      <Column sm={4} md={4} lg={5} >
-        <Tile>
-          <GaugeChart
-            bind:data={totalAllowanceGaugeData}
-            bind:options={totalAllowanceGaugeOptions} />
-          <h5>Used allowance:</h5>
-          <p>{allowanceUsed.toFixed(1)} km</p>
-          <h5>Remaing allowance:</h5>
-          <p>{allowanceRemaining.toFixed(1)} km</p>
-        </Tile>
-      </Column>
-      <Column sm={4} md={4} lg={5}>
-        <Tile>
-          <GaugeChart
-            bind:data={dailyAllowanceGaugeData}
-            bind:options={dailyAllowanceGaugeOptions} />
-            <h5>Average daily driven:</h5>
-            <p>{allowanceUsedPerDay.toFixed(1)} km</p>
-        </Tile>
-      </Column>
-      <Column sm={4} md={4} lg={5}>
-        <Tile>
-          <LineChart
-            bind:data={extrapolatedAllowanceChartData}
-            options={extrapolatedAllowanceChartOptions} />
-        </Tile>
+    <Row padding>
+      <Column>
+        <NumberInput size="xl" hideSteppers label="Current kilometers" helperText="The amount of kilometers on the cars odometer" bind:value={currentKm} />
       </Column>
     </Row>
-  </Grid>
-  <Grid>
     <Row>
       <Column>
-        <NumberInput hideSteppers label="Current kilometers" bind:value={currentKm} />
         <Accordion>
-          <AccordionItem title="Configure kilometer allowance" open={true}>
+          <AccordionItem title="Result" open={configurationComplete} disabled={!configurationComplete} >
+            <Row>
+              <Column sm={4} md={4} lg={5}>
+                <Tile>
+                  <GaugeChart
+                    bind:data={totalAllowanceGaugeData}
+                    bind:options={totalAllowanceGaugeOptions} />
+                  <h5>Used allowance:</h5>
+                  <p>{allowanceUsed.toFixed(1)} km</p>
+                  <h5>Remaing allowance:</h5>
+                  <p>{allowanceRemaining.toFixed(1)} km</p>
+                </Tile>
+              </Column>
+              <Column sm={4} md={4} lg={5}>
+                <Tile>
+                  <GaugeChart
+                    bind:data={dailyAllowanceGaugeData}
+                    bind:options={dailyAllowanceGaugeOptions} />
+                  <h5>Average daily driven:</h5>
+                  <p>{allowanceUsedPerDay.toFixed(1)} km</p>
+                </Tile>
+              </Column>
+              <Column sm={4} md={4} lg={5}>
+                <Tile>
+                  <LineChart
+                    bind:data={extrapolatedAllowanceChartData}
+                    options={extrapolatedAllowanceChartOptions} />
+                </Tile>
+              </Column>
+            </Row>
+          </AccordionItem>
+          <AccordionItem title="Configure kilometer allowance" open={!configurationComplete}>
             <Grid>
               <Row>
-                <Column>
+                <Column padding sm={4} md={8} lg={8}>
                   <DatePicker
                     datePickerType="single"
                     dateFormat="d/m/Y"
@@ -251,7 +277,7 @@
                     <DatePickerInput labelText="Check out date (when you got the car)" />
                   </DatePicker>
                 </Column>
-                <Column>
+                <Column padding sm={4} md={8} lg={8}>
                   <DatePicker
                     datePickerType="single"
                     dateFormat="d/m/Y"
@@ -262,21 +288,19 @@
                 </Column>
               </Row>
               <Row>
-                <Column>
+                <Column padding sm={4} md={4} lg={8}>
                   <NumberInput
                     hideSteppers
                     label="Monthly kilometer allowance"
                     bind:value={allowanceMonthly} />
                 </Column>
-                <Column>
+                <Column padding sm={4} md={4} lg={8}>
                   <NumberInput
                     hideSteppers
                     label="Initial kilometers (at check out)"
                     bind:value={initialKm} />
                 </Column>
-              </Row>
-              <Row>
-                <Column>
+                <Column padding sm={4} md={8} lg={16}>
                   <Dropdown
                     titleText="Car class"
                     bind:selectedId={carClass}
@@ -298,30 +322,11 @@
               </Row>
             </Grid>
           </AccordionItem>
+          <AccordionItem title="Debug information" open={false}>
+            <CodeSnippet wrapText type="multi" hideCopyButton={true} code={debugString} expanded={true} />
+          </AccordionItem>
         </Accordion>
       </Column>
-    </Row>
-    <br />
-    <Row>
-      <h3>Debug information</h3>
-    </Row>
-    <Row>
-      This information may be used to debug calculations.
-      <br /><br />
-    </Row>
-    <Row>
-      <p>
-        CO Date: {checkOutDate} - applied factor: {allowanceFactorMonthCO} (amounts to {allowanceMonthCO}
-        km)<br />
-        CI Date: {checkInDate} - applied factor: {allowanceFactorMonthCI} (amounts to {allowanceMonthCI}
-        km)<br />
-        Months with full allowance: {fullMonths} (amounts to {allowanceMonthly * fullMonths} km)<br />
-        Total allowance: {allowanceTotal} km<br />
-        Checked out days until today: {checkedOutDaysUntilToday}<br />
-        Checked out days in total: {checkedOutDaysTotal}<br />
-        Within daily allowance: {withinDailyAllowance}<br />
-        Factor daily allowance used: {dailyAllowanceOveragePercentage}<br />
-      </p>
     </Row>
   </Grid>
 </Content>
@@ -329,5 +334,14 @@
 <style>
   :global(.bx--list-box__menu-item, .bx--list-box__menu-item__option) {
     height: auto;
+  }
+
+  :global(.bx--content) {
+    padding: 0.5rem;
+  }
+
+  :global(.bx--col) {
+    padding-right: 0.25rem;
+    padding-left: 0.75rem;
   }
 </style>
